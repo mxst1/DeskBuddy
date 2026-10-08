@@ -4,5 +4,6 @@
 #include "../models/AppState.h"
 
 Song getCurrentSong();
+Weather getCurrentWeather();
 
 #endif // DATA_H

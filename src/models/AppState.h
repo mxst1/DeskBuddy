@@ -12,4 +12,12 @@ struct Song
     std::string id = "";
 };
 
+struct Weather
+{
+    std::string description = "";
+    float temperature = 0.0;
+    float high = 0.0;
+    float low = 0.0;
+};
+
 #endif // APPSTATE_H

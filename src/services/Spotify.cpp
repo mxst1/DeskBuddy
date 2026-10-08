@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Spotify.h"
-#include "../httplib.h"
-#include "../json.hpp"
+#include "../libs/httplib.h"
+#include "../libs/json.hpp"
 
 using json = nlohmann::json;
 
