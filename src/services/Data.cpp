@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstring>
+#include <fstream>
 #include <string>
 #include "Data.h"
 #include "../models/AppState.h"
@@ -12,6 +14,13 @@ using json = nlohmann::json;
 
 namespace
 {
+    template <size_t Size>
+    void copyString(char (&destination)[Size], const std::string &source)
+    {
+        std::strncpy(destination, source.c_str(), Size - 1);
+        destination[Size - 1] = '\0';
+    }
+
     std::string weatherDescriptionFromCode(int code)
     {
         switch (code)
@@ -99,13 +108,18 @@ Song getCurrentSong()
             // Parse the response body string into JSON
             json data = json::parse(res->body);
 
-            Song song;
-            song.name = data["item"]["name"];
-            song.artist = data["item"]["artists"][0]["name"];
+            Song song = {};
+            copyString(song.name, data["item"]["name"].get<std::string>());
+            copyString(song.artist, data["item"]["artists"][0]["name"].get<std::string>());
             song.progress_ms = data["progress_ms"];
             song.duration_ms = data["item"]["duration_ms"];
             song.is_playing = data["is_playing"];
-            song.id = data["item"]["id"];
+            copyString(song.id, data["item"]["id"].get<std::string>());
+            if (!data["item"]["album"]["images"].empty())
+            {
+                copyString(song.album_art_url,
+                           data["item"]["album"]["images"][0]["url"].get<std::string>());
+            }
             return song;
         }
         catch (const json::parse_error &e)
@@ -144,10 +158,10 @@ Weather getCurrentWeather()
         try
         {
             json data = json::parse(res->body);
-            Weather weather;
+            Weather weather = {};
             weather.temperature = data["hourly"]["temperature_2m"][0];
-            weather.description = weatherDescriptionFromCode(
-                data["hourly"]["weather_code"][0].get<int>());
+            copyString(weather.description, weatherDescriptionFromCode(
+                data["hourly"]["weather_code"][0].get<int>()));
             weather.high = data["daily"]["apparent_temperature_max"][0];
             weather.low = data["daily"]["apparent_temperature_min"][0];
             return weather;
@@ -171,4 +185,38 @@ Weather getCurrentWeather()
     }
 
     return Weather();
+}
+
+bool downloadAlbumArt(const char *url, const char *path)
+{
+    if (url == nullptr || path == nullptr || url[0] == '\0')
+        return false;
+
+    httplib::detail::UrlComponents url_components;
+    if (!httplib::detail::parse_url(url, url_components) ||
+        url_components.scheme != "https" || url_components.host.empty() ||
+        url_components.path.empty())
+    {
+        std::cerr << "Invalid album art URL." << std::endl;
+        return false;
+    }
+
+    httplib::Client cli(url_components.scheme + "://" + url_components.host);
+    auto res = cli.Get(url_components.path +
+                       (url_components.query.empty() ? "" : "?" + url_components.query));
+    if (!res || res->status != 200)
+    {
+        std::cerr << "Album art download failed." << std::endl;
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output)
+    {
+        std::cerr << "Could not open album art file for writing." << std::endl;
+        return false;
+    }
+
+    output.write(res->body.data(), static_cast<std::streamsize>(res->body.size()));
+    return output.good();
 }

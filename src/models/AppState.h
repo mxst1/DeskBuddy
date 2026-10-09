@@ -1,23 +1,24 @@
 #ifndef APPSTATE_H
 #define APPSTATE_H
-#include <string>
+#include <stdbool.h>
 
-struct Song
+typedef struct Song
 {
-    std::string name = "";
-    std::string artist = "";
-    int progress_ms = 0;
-    int duration_ms = 0;
-    bool is_playing = false;
-    std::string id = "";
-};
+    char name[256];
+    char artist[256];
+    long progress_ms;
+    long duration_ms;
+    bool is_playing;
+    char id[128];
+    char album_art_url[512];
+} Song;
 
-struct Weather
+typedef struct Weather
 {
-    std::string description = "";
-    float temperature = 0.0;
-    float high = 0.0;
-    float low = 0.0;
-};
+    char description[128];
+    float temperature;
+    float high;
+    float low;
+} Weather;
 
 #endif // APPSTATE_H
